@@ -1,0 +1,76 @@
+---
+title: "Required size of captive population during mouse eradication on Gough"
+author: "Antje Steinfurth, Steffen Oppel"
+date: "14 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,error=FALSE,message=FALSE)
+```
+
+## How many birds do we need to keep in captivity?
+
+During the mouse eradication on Gough Island there is the risk of significant non-target mortality of two endemic landbird species, the Gough bunting and moorhen. Captive populations of these two species will be kept safe from consuming rodenticide pellets, and should be able to repopulate the island in the worst-case scenario that mortality of wild individuals approaches 100%.
+
+It is therefore critical that the size of the safety population kept in captivity is large enough to ensure that the species will survive even if all other individuals are killed during the eradication. To approximate this number, we conducted several simulations to assess the probability that the species will go extinct if only the birds from the captive population survive. These simulations can form a basis for deciding the size of the captive populations, they do not provide a definitive answer.
+
+
+## Demographic model and population viability analysis
+
+We used a simple two-stage matrix population model to calculate the annual population growth rate. With this population growth rate we used a Ricker model to extrapolate the population size, and we included a `r SD_lambda*100`% of stochastic variation around the annual population growth rate. We also imposed an upper limit of `r K` individuals as the carrying capacity on Gough, and included a scenario of a catastrophic population collapse that reduced the population to `r Catastrophe_severity*100`% in years when such a catastrophe occurred. Catastrophes were assumed to occur with a probability of `r Catastrophe_prob*100`% each year. In addition, we assumed that some of the captive birds would not be released in a healthy or reproductive state (or died during captivity), and this number of individuals was randomised based on a Poisson distribution with mean of `r captfail` and subtracted from the initial population size of the viability assessment.
+
+We calculated annual population growth rate using a plausible range of demographic parameters which were derived from literature values and unpublished data. Specifically, we used the following values:
+
++ annual adult survival probability - range from `r min(Sa)` to `r max(Sa)` based on unpublished data ...
++ annual juvenile survival probability - range from `r min(Sj)` to `r max(Sj)` based on ...
++ annual fecundity - range from `r min(F)` to `r max(F)` based on Cuthbert and Hilton (2004) and unpublished nest records from 2009
+
+For each combination of demographic parameters and initial population size (=the size of the captive population) we ran `r nreps` stochastic simulations of population viability over `r nyears` years, and we calculated the proportion of those simualtions where the population went extinct. 
+We then identified the captive population size which would result in an extinction risk of <`r acceptable_risk*100`% across all simulations of population viability.
+
+
+
+## Captive population of Gough Buntings
+
+For Gough Buntings, a captive population of `r POPEST` individuals would be required to safeguard against extinction under the range of demographic values and scenarios that we considered.
+
+```{r, echo=FALSE,warning=FALSE,error=FALSE,message=FALSE, fig.height = 6, fig.width = 8, fig.align = "center"}
+gg <- ggplot(SIM_OUT, aes(x=pop.size, y=OUTCOME)) + geom_point() +
+  geom_hline(aes(yintercept=acceptable_risk), color='red', size=1) +
+  xlab("Captive population size") +
+  ylab("Prob. of Gough Bunting extinct within 50 years") +
+  annotate("text", x=75, y=0.65, label= sprintf("Captive population of %s birds needed", POPEST), size=5, colour= 'red') + 
+  theme(panel.background=element_rect(fill="white", colour="black"), 
+        axis.text=element_text(size=16, color="black"), 
+        axis.title=element_text(size=20), 
+        strip.text.x=element_text(size=16, color="black"), 
+        strip.background=element_rect(fill="white", colour="black"), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.border = element_blank())
+gg
+```
+
+<br>
+<br>
+
+Based on `r round(dim(SIM_OUT)[1]*nreps/1000000,digits=0)` million simulations the risk of the population going extinct can be further reduced by increasing the size of the captive population. These results are shown in the table below.
+
+
+```{r  summary, echo=FALSE,warning=FALSE,error=FALSE,message=FALSE}
+
+summary<- SIM_OUT %>% mutate(pop.size=round(pop.size/5)*5) %>%
+  group_by(pop.size) %>%
+  summarise(risk=max(OUTCOME)) %>%
+  filter(risk<acceptable_risk)
+
+
+kable(summary, caption="Simulated extinction probability of Gough Bunting for different captive population sizes during the eradication operation",col.names=  c("Captive population size","Proportion of simulated populations going extinct"))
+```
+
+
+<br>
+<br>
+
+
